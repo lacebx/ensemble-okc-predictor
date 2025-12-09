@@ -1,0 +1,35 @@
+{
+  "collection_date": "2025-12-08 18:35:59",
+  "season": "2025-26",
+  "data_sources": {
+    "all_games": {
+      "collected": true,
+      "rows": 853,
+      "date_range": {
+        "min": "2025-10-02",
+        "max": "2025-12-07"
+      }
+    },
+    "team_logs": {
+      "collected": true,
+      "rows": 850
+    },
+    "player_logs": {
+      "collected": true,
+      "rows": 9795
+    },
+    "game_features": {
+      "collected": true,
+      "rows": 422,
+      "date_range": {
+        "min": "2025-10-02",
+        "max": "2025-12-07"
+      },
+      "teams": 31,
+      "win_distribution": {
+        "wins": 225,
+        "losses": 197
+      }
+    }
+  }
+}
