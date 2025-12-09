@@ -487,11 +487,13 @@ with tab1:
                             'OKC_REB': okc_reb_avg,
                             'OKC_AST': okc_ast_avg,
                             'OKC_WinRate': okc_win_rate,
+                            'OKC_Games': len(okc_recent),
                             'Opp_PTS': opp_pts_avg,
                             'Opp_FG': opp_fg_avg,
                             'Opp_REB': opp_reb_avg,
                             'Opp_AST': opp_ast_avg,
                             'Opp_WinRate': opp_win_rate,
+                            'Opp_Games': len(opp_games),
                             'PTS_Diff': okc_pts_avg - opp_pts_avg,
                             'FG_Diff': okc_fg_avg - opp_fg_avg,
                             'REB_Diff': okc_reb_avg - opp_reb_avg,
@@ -505,137 +507,168 @@ with tab1:
                 for i, pred in enumerate(predictions_list, 1):
                     win_prob = float(pred['Win Probability'].rstrip('%'))
                     is_win = pred['Prediction'] == 'WIN'
-                    
-                    badge_class = "badge-win" if is_win else "badge-loss"
                     badge_text = "WIN" if is_win else "LOSS"
                     
-                    # Create detailed explanation
-                    explanation_html = f"""
-                    <div class="prediction-card">
-                        <div class="prediction-header">
-                            <h3 class="prediction-title">Game {i}: vs {pred['Opponent']}</h3>
-                            <span class="prediction-badge {badge_class}">{badge_text}</span>
-                        </div>
+                    # Card container with border
+                    st.markdown("---")
+                    
+                    # Card header
+                    col_header1, col_header2 = st.columns([4, 1])
+                    with col_header1:
+                        st.markdown(f"#### 🏀 Game {i}: vs {pred['Opponent']}")
+                    with col_header2:
+                        if is_win:
+                            st.success(f"### ✅ {badge_text}")
+                        else:
+                            st.error(f"### ❌ {badge_text}")
+                    
+                    # Game info in columns
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.markdown("**📅 Date**")
+                        st.markdown(f"`{pred['Date']}`")
+                    with col2:
+                        st.markdown("**📍 Location**")
+                        location_icon = "🏠" if pred['Location'] == 'home' else "✈️"
+                        st.markdown(f"{location_icon} {pred['Location'].upper()}")
+                    with col3:
+                        st.markdown("**🎯 Win Probability**")
+                        st.markdown(f"### {pred['Win Probability']}")
+                    with col4:
+                        st.markdown("**📊 Confidence Range**")
+                        st.markdown(f"`{pred['Confidence Range']}`")
+                    
+                    # Detailed explanation using expander - ALWAYS EXPANDED with full evidence
+                    with st.expander("📊 Detailed Prediction Analysis with Evidence", expanded=True):
+                        # 1. Recent Form
+                        st.markdown("#### 1️⃣ Recent Form Comparison")
+                        col_form1, col_form2 = st.columns(2)
+                        with col_form1:
+                            st.markdown(f"**OKC Thunder:**")
+                            okc_wins = int(pred['OKC_WinRate']*pred['OKC_Games'])
+                            okc_losses = pred['OKC_Games'] - okc_wins
+                            st.metric("Win Rate", f"{pred['OKC_WinRate']*100:.1f}%", f"{okc_wins}-{okc_losses} record")
+                        with col_form2:
+                            st.markdown(f"**{pred['Opponent']}:**")
+                            opp_wins = int(pred['Opp_WinRate']*pred['Opp_Games'])
+                            opp_losses = pred['Opp_Games'] - opp_wins
+                            st.metric("Win Rate", f"{pred['Opp_WinRate']*100:.1f}%", f"{opp_wins}-{opp_losses} record")
                         
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                            <div>
-                                <div style="font-size: 0.875rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">Date</div>
-                                <div style="font-weight: 600; color: var(--foreground);">{pred['Date']}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.875rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">Location</div>
-                                <div style="font-weight: 600; color: var(--foreground);">{pred['Location'].upper()}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.875rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">Win Probability</div>
-                                <div style="font-weight: 600; color: var(--primary); font-size: 1.25rem;">{pred['Win Probability']}</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.875rem; color: var(--muted-foreground); margin-bottom: 0.25rem;">Confidence Range</div>
-                                <div style="font-weight: 600; color: var(--foreground);">{pred['Confidence Range']}</div>
-                            </div>
-                        </div>
+                        win_rate_diff = pred['WinRate_Diff']*100
+                        if win_rate_diff > 0:
+                            st.success(f"✅ **Advantage: OKC has {win_rate_diff:.1f}% higher win rate** ({pred['OKC_WinRate']*100:.1f}% vs {pred['Opp_WinRate']*100:.1f}%)")
+                        else:
+                            st.warning(f"⚠️ **Opponent Advantage: {abs(win_rate_diff):.1f}% higher win rate** ({pred['Opp_WinRate']*100:.1f}% vs {pred['OKC_WinRate']*100:.1f}%)")
                         
-                        <div class="explanation-section">
-                            <div class="explanation-title">📊 Detailed Prediction Analysis</div>
-                            
-                            <div class="explanation-item">
-                                <div class="explanation-item-title">1. Recent Form Comparison</div>
-                                <div class="explanation-item-content">
-                                    <strong>OKC Thunder:</strong> <span class="metric-highlight">{pred['OKC_WinRate']*100:.1f}%</span> win rate in last {len(okc_recent)} games 
-                                    ({int(pred['OKC_WinRate']*len(okc_recent))} wins, {len(okc_recent) - int(pred['OKC_WinRate']*len(okc_recent))} losses)<br>
-                                    <strong>{pred['Opponent']}:</strong> <span class="metric-highlight">{pred['Opp_WinRate']*100:.1f}%</span> win rate in last {len(opp_games)} games 
-                                    ({int(pred['Opp_WinRate']*len(opp_games))} wins, {len(opp_games) - int(pred['Opp_WinRate']*len(opp_games))} losses)<br>
-                                    <strong>Advantage:</strong> <span class="metric-positive">OKC +{pred['WinRate_Diff']*100:.1f}%</span> win rate differential
-                                </div>
-                            </div>
-                            
-                            <div class="explanation-item">
-                                <div class="explanation-item-title">2. Scoring Analysis</div>
-                                <div class="explanation-item-content">
-                                    <strong>OKC Average Points:</strong> <span class="metric-highlight">{pred['OKC_PTS']:.1f} PPG</span><br>
-                                    <strong>{pred['Opponent']} Average Points:</strong> <span class="metric-highlight">{pred['Opp_PTS']:.1f} PPG</span><br>
-                                    <strong>Point Differential:</strong> 
-                                    {'<span class="metric-positive">+' if pred['PTS_Diff'] > 0 else '<span class="metric-negative">'}
-                                    {pred['PTS_Diff']:.1f} points</span> (OKC advantage)
-                                </div>
-                            </div>
-                            
-                            <div class="explanation-item">
-                                <div class="explanation-item-title">3. Shooting Efficiency</div>
-                                <div class="explanation-item-content">
-                                    <strong>OKC Field Goal %:</strong> <span class="metric-highlight">{pred['OKC_FG']*100:.1f}%</span><br>
-                                    <strong>{pred['Opponent']} Field Goal %:</strong> <span class="metric-highlight">{pred['Opp_FG']*100:.1f}%</span><br>
-                                    <strong>Shooting Advantage:</strong> 
-                                    {'<span class="metric-positive">+' if pred['FG_Diff'] > 0 else '<span class="metric-negative">'}
-                                    {pred['FG_Diff']*100:.1f}%</span> (OKC advantage)
-                                </div>
-                            </div>
-                            
-                            <div class="explanation-item">
-                                <div class="explanation-item-title">4. Rebounding & Assists</div>
-                                <div class="explanation-item-content">
-                                    <strong>Rebounds:</strong> OKC <span class="metric-highlight">{pred['OKC_REB']:.1f}</span> vs {pred['Opponent']} <span class="metric-highlight">{pred['Opp_REB']:.1f}</span> 
-                                    ({'<span class="metric-positive">+' if pred['REB_Diff'] > 0 else '<span class="metric-negative">'}{pred['REB_Diff']:.1f}</span>)<br>
-                                    <strong>Assists:</strong> OKC <span class="metric-highlight">{pred['OKC_AST']:.1f}</span> vs {pred['Opponent']} <span class="metric-highlight">{pred['Opp_AST']:.1f}</span> 
-                                    ({'<span class="metric-positive">+' if pred['AST_Diff'] > 0 else '<span class="metric-negative">'}{pred['AST_Diff']:.1f}</span>)
-                                </div>
-                            </div>
-                            
-                            <div class="explanation-item">
-                                <div class="explanation-item-title">5. Key Factors Supporting Prediction</div>
-                                <div class="explanation-item-content">
-                    """
-                    
-                    # Add key factors
-                    factors = []
-                    if pred['WinRate_Diff'] > 0.3:
-                        factors.append(f"✅ Strong momentum advantage ({pred['WinRate_Diff']*100:.1f}% higher win rate)")
-                    if pred['PTS_Diff'] > 5:
-                        factors.append(f"✅ Significant scoring advantage (+{pred['PTS_Diff']:.1f} PPG)")
-                    if pred['FG_Diff'] > 0.02:
-                        factors.append(f"✅ Better shooting efficiency (+{pred['FG_Diff']*100:.1f}% FG%)")
-                    if pred['REB_Diff'] > 3:
-                        factors.append(f"✅ Rebounding advantage (+{pred['REB_Diff']:.1f} RPG)")
-                    if pred['AST_Diff'] > 3:
-                        factors.append(f"✅ Better ball movement (+{pred['AST_Diff']:.1f} APG)")
-                    if pred['Location'] == 'home':
-                        factors.append("✅ Home court advantage (Paycom Center)")
-                    if pred['WinRate_Diff'] < -0.2:
-                        factors.append(f"⚠️ Opponent's strong recent form ({pred['Opp_WinRate']*100:.1f}% win rate)")
-                    if pred['PTS_Diff'] < -5:
-                        factors.append(f"⚠️ Opponent scores more points ({abs(pred['PTS_Diff']):.1f} PPG advantage)")
-                    
-                    if len(factors) == 0:
-                        factors.append("Factors are relatively balanced")
-                    
-                    for factor in factors:
-                        explanation_html += f"<div style='margin: 0.5rem 0;'>{factor}</div>"
-                    
-                    explanation_html += """
-                                </div>
-                            </div>
-                            
-                            <div class="explanation-item">
-                                <div class="explanation-item-title">6. Model Confidence</div>
-                                <div class="explanation-item-content">
-                                    <strong>Prediction Confidence:</strong> <span class="metric-highlight">{}</span><br>
-                                    <strong>Confidence Range:</strong> {}<br>
-                                    <strong>Error Margin:</strong> {}<br>
-                                    <strong>Model Used:</strong> {} (CV Score: {:.4f})
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    """.format(
-                        pred['Win Probability'],
-                        pred['Confidence Range'],
-                        pred['Error Margin'],
-                        best_model_name,
-                        results[best_model_name]['cv_mean']
-                    )
-                    
-                    st.markdown(explanation_html, unsafe_allow_html=True)
+                        st.markdown("---")
+                        
+                        # 2. Scoring Analysis
+                        st.markdown("#### 2️⃣ Scoring Analysis")
+                        col_score1, col_score2 = st.columns(2)
+                        with col_score1:
+                            st.metric("OKC Average Points", f"{pred['OKC_PTS']:.1f} PPG", 
+                                    f"Based on last {pred['OKC_Games']} games")
+                        with col_score2:
+                            st.metric(f"{pred['Opponent']} Average Points", f"{pred['Opp_PTS']:.1f} PPG",
+                                    f"Based on last {pred['Opp_Games']} games")
+                        
+                        pts_diff = pred['PTS_Diff']
+                        if pts_diff > 0:
+                            st.success(f"✅ **Point Differential: +{pts_diff:.1f} points** - OKC scores {pts_diff:.1f} more points per game on average")
+                        else:
+                            st.warning(f"⚠️ **Point Differential: {pts_diff:.1f} points** - Opponent scores {abs(pts_diff):.1f} more points per game")
+                        
+                        st.markdown("---")
+                        
+                        # 3. Shooting Efficiency
+                        st.markdown("#### 3️⃣ Shooting Efficiency")
+                        col_fg1, col_fg2 = st.columns(2)
+                        with col_fg1:
+                            st.metric("OKC Field Goal %", f"{pred['OKC_FG']*100:.1f}%")
+                        with col_fg2:
+                            st.metric(f"{pred['Opponent']} Field Goal %", f"{pred['Opp_FG']*100:.1f}%")
+                        
+                        fg_diff = pred['FG_Diff']*100
+                        if fg_diff > 0:
+                            st.success(f"✅ **Shooting Advantage: +{fg_diff:.1f}%** - OKC makes {fg_diff:.1f}% more of their shots")
+                        else:
+                            st.warning(f"⚠️ **Shooting Advantage: {fg_diff:.1f}%** - Opponent shoots {abs(fg_diff):.1f}% better")
+                        
+                        st.markdown("---")
+                        
+                        # 4. Rebounding & Assists
+                        st.markdown("#### 4️⃣ Rebounding & Assists")
+                        col_reb1, col_reb2 = st.columns(2)
+                        with col_reb1:
+                            st.metric("OKC Rebounds", f"{pred['OKC_REB']:.1f} RPG")
+                            st.metric("OKC Assists", f"{pred['OKC_AST']:.1f} APG")
+                        with col_reb2:
+                            st.metric(f"{pred['Opponent']} Rebounds", f"{pred['Opp_REB']:.1f} RPG")
+                            st.metric(f"{pred['Opponent']} Assists", f"{pred['Opp_AST']:.1f} APG")
+                        
+                        # Show differentials with metrics
+                        reb_diff = pred['REB_Diff']
+                        ast_diff = pred['AST_Diff']
+                        
+                        col_diff1, col_diff2 = st.columns(2)
+                        with col_diff1:
+                            if reb_diff > 0:
+                                st.metric("Rebound Differential", f"+{reb_diff:.1f}", "OKC advantage", delta_color="normal")
+                            else:
+                                st.metric("Rebound Differential", f"{reb_diff:.1f}", "Opponent advantage", delta_color="inverse")
+                        with col_diff2:
+                            if ast_diff > 0:
+                                st.metric("Assist Differential", f"+{ast_diff:.1f}", "OKC advantage", delta_color="normal")
+                            else:
+                                st.metric("Assist Differential", f"{ast_diff:.1f}", "Opponent advantage", delta_color="inverse")
+                        
+                        st.markdown("---")
+                        
+                        # 5. Key Factors with detailed numbers
+                        st.markdown("#### 5️⃣ Key Factors Supporting Prediction")
+                        factors = []
+                        if pred['WinRate_Diff'] > 0.3:
+                            factors.append(f"✅ **Strong momentum advantage:** OKC has {pred['WinRate_Diff']*100:.1f}% higher win rate ({pred['OKC_WinRate']*100:.1f}% vs {pred['Opp_WinRate']*100:.1f}%)")
+                        if pred['PTS_Diff'] > 5:
+                            factors.append(f"✅ **Significant scoring advantage:** OKC scores {pred['PTS_Diff']:.1f} more points per game ({pred['OKC_PTS']:.1f} vs {pred['Opp_PTS']:.1f} PPG)")
+                        if pred['FG_Diff'] > 0.02:
+                            factors.append(f"✅ **Better shooting efficiency:** OKC shoots {pred['FG_Diff']*100:.1f}% better ({pred['OKC_FG']*100:.1f}% vs {pred['Opp_FG']*100:.1f}%)")
+                        if pred['REB_Diff'] > 3:
+                            factors.append(f"✅ **Rebounding advantage:** OKC averages {pred['REB_Diff']:.1f} more rebounds ({pred['OKC_REB']:.1f} vs {pred['Opp_REB']:.1f} RPG)")
+                        if pred['AST_Diff'] > 3:
+                            factors.append(f"✅ **Better ball movement:** OKC averages {pred['AST_Diff']:.1f} more assists ({pred['OKC_AST']:.1f} vs {pred['Opp_AST']:.1f} APG)")
+                        if pred['Location'] == 'home':
+                            factors.append("✅ **Home court advantage:** Playing at Paycom Center (home teams typically have 3-5% win probability boost)")
+                        if pred['WinRate_Diff'] < -0.2:
+                            factors.append(f"⚠️ **Opponent's strong recent form:** {pred['Opponent']} has {pred['Opp_WinRate']*100:.1f}% win rate (vs OKC's {pred['OKC_WinRate']*100:.1f}%)")
+                        if pred['PTS_Diff'] < -5:
+                            factors.append(f"⚠️ **Opponent scores more:** {pred['Opponent']} averages {abs(pred['PTS_Diff']):.1f} more points per game")
+                        
+                        if len(factors) == 0:
+                            factors.append("Factors are relatively balanced between teams")
+                        
+                        for factor in factors:
+                            st.markdown(f"- {factor}")
+                        
+                        st.markdown("---")
+                        
+                        # 6. Model Confidence with full details
+                        st.markdown("#### 6️⃣ Model Confidence & Methodology")
+                        col_conf1, col_conf2, col_conf3 = st.columns(3)
+                        with col_conf1:
+                            st.metric("Prediction Confidence", pred['Win Probability'])
+                        with col_conf2:
+                            st.metric("Confidence Range", pred['Confidence Range'])
+                        with col_conf3:
+                            st.metric("Error Margin", pred['Error Margin'])
+                        
+                        st.info(f"""
+                        **Model Details:**
+                        - **Model Used:** {best_model_name}
+                        - **Cross-Validation Score:** {results[best_model_name]['cv_mean']:.4f}
+                        - **Training Data:** {len(X_train)} games
+                        - **Features:** 52 features including stats, form, and efficiency metrics
+                        """)
                 
                 # Summary
                 wins_pred = sum([1 for p in predictions_list if p['Prediction'] == 'WIN'])
